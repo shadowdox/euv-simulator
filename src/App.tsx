@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import Nav from './components/Nav';
 import Landing from './pages/Landing';
 import Simulator from './pages/Simulator';
@@ -7,7 +7,7 @@ import Results from './pages/Results';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <Nav />
         <main style={{ flex: 1 }}>
@@ -19,6 +19,6 @@ export default function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
