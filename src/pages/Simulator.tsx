@@ -9,6 +9,20 @@ import {
 } from '../lib/physics';
 import { computePosterior, mapEstimate, shannonEntropy, heatColor } from '../lib/bayes';
 
+// Technical hardware aliases for the true-defect region.
+// Used when the MAP estimate matches the true region — prevents both labels
+// reading identically, making clear the diagnosis was inferred from symptoms.
+const FAULT_LABELS = [
+  'Big Core Complex (BCC)',       // P-Core Cluster
+  'Efficiency Core Array (ECA)',  // E-Core Cluster
+  'Shader Processing Grid',       // GPU Array
+  'Matrix Multiply Fabric',       // Neural Engine / NPU
+  'Shared L3 SRAM Bank',          // System-Level Cache
+  'DRAM PHY Interface',           // Memory Controller
+  'Video Encode Pipeline',        // Media Engine / ISP
+  'AXI Interconnect Mesh',        // Fabric / IO / SE
+];
+
 interface RunRecord {
   id: number;
   lambda: number; mu: number; kappa: number;
@@ -294,7 +308,9 @@ export default function Simulator() {
                       <div>
                         <div className="font-mono" style={{ fontSize: 9, color: '#4a6070', letterSpacing: '0.1em', marginBottom: 4 }}>TRUE DEFECT</div>
                         <div className="font-display" style={{ fontSize: 13, color: '#ff3b3b', letterSpacing: '0.06em' }}>
-                          {REGION_NAMES[result.trueRegion!]}
+                          {posterior && mapEstimate(posterior) === result.trueRegion
+                            ? FAULT_LABELS[result.trueRegion!]
+                            : REGION_NAMES[result.trueRegion!]}
                         </div>
                       </div>
                       {posterior && (
