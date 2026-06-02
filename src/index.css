@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Theme: provided dark/light tokens ───────────────────── */
+@layer base {
+  :root {
+    --card:        #f5f5f5;
+    --ring:        #606060;
+    --input:       #e0e0e0;
+    --muted:       #d9d9d9;
+    --accent:      #c0c0c0;
+    --border:      #d0d0d0;
+    --radius:      0.35rem;
+    --popover:     #f5f5f5;
+    --primary:     #606060;
+    --sidebar:     #eaeaea;
+    --secondary:   #e0e0e0;
+    --background:  #f0f0f0;
+    --foreground:  #333333;
+    --destructive: #cc3333;
+    --muted-foreground:        #666666;
+    --card-foreground:         #333333;
+    --primary-foreground:      #ffffff;
+    --secondary-foreground:    #333333;
+    --accent-foreground:       #333333;
+    --popover-foreground:      #333333;
+    --destructive-foreground:  #ffffff;
+  }
+
+  /* Dark mode — applied by default since this is a dark app */
+  html {
+    --card:        #202020;
+    --ring:        #a0a0a0;
+    --input:       #303030;
+    --muted:       #2a2a2a;
+    --accent:      #404040;
+    --border:      #353535;
+    --popover:     #202020;
+    --primary:     #a0a0a0;
+    --sidebar:     #1f1f1f;
+    --secondary:   #303030;
+    --background:  #1a1a1a;
+    --foreground:  #d9d9d9;
+    --destructive: #e06666;
+    --muted-foreground:        #808080;
+    --card-foreground:         #d9d9d9;
+    --primary-foreground:      #1a1a1a;
+    --secondary-foreground:    #d9d9d9;
+    --accent-foreground:       #d9d9d9;
+    --popover-foreground:      #d9d9d9;
+    --destructive-foreground:  #ffffff;
+  }
+}
+
+/* ── Project accent tokens ───────────────────────────────── */
+:root {
+  /* GlassButton oklch() relative-color needs actual color values */
+  --foreground-color: #d9d9d9;
+  --background-color: #0d0d14;
+
+  /* Surfaces */
+  --void:     #0d0d14;
+  --surface:  #141420;
+  --surface2: #1a1a26;
+  --surface3: #1e1e2c;
+
+  /* Primary accent — purple/violet */
+  --cyan:   #7c6fee;
+  --amber:  #f5a623;
+  --green:  #00ff88;
+  --red:    #ff3b3b;
+
+  /* Text */
+  --text:       #d9d9d9;
+  --text-muted: #808080;
+
+  /* Panel border */
+  --panel-border: rgba(124,111,238,0.18);
+
+  --glow-cyan:  0 0 12px rgba(124,111,238,0.45);
+  --glow-amber: 0 0 12px rgba(245,166,35,0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root { height: 100%; }
+
+body {
+  background-color: var(--void);
+  color: var(--text);
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Circuit grid texture */
+.grid-bg {}
+
+/* Panel with corner brackets */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--panel-border);
+  position: relative;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 10px; height: 10px;
+  border-top: 2px solid var(--cyan);
+  border-left: 2px solid var(--cyan);
+}
+.panel::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 10px; height: 10px;
+  border-bottom: 2px solid var(--cyan);
+  border-right: 2px solid var(--cyan);
+}
+
+/* Typography helpers */
+.font-display { font-family: 'Orbitron', monospace; }
+.font-mono    { font-family: 'Fira Code', 'JetBrains Mono', monospace; }
+.font-body    { font-family: 'Inter', 'Syne', sans-serif; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--void); }
+::-webkit-scrollbar-thumb { background: #404040; border-radius: 3px; }
+
+a { color: inherit; text-decoration: none; }
+
+/* Range input */
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 3px;
+  background: var(--surface2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--cyan);
+  cursor: pointer;
+  box-shadow: var(--glow-cyan);
+}
+
+/* Keyframes */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+@keyframes glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 3px var(--cyan)); }
+  50%       { filter: drop-shadow(0 0 10px var(--cyan)); }
+}
+@keyframes float-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scan-h {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(600%); }
+}
+@keyframes defect-pulse {
+  0%   { r: 6;  opacity: 0.9; }
+  50%  { r: 13; opacity: 0.3; }
+  100% { r: 6;  opacity: 0.9; }
+}
+
+.cursor-blink { animation: blink 1s step-end infinite; }
+.glow-animate { animation: glow-pulse 2s ease-in-out infinite; }
+.float-in     { animation: float-up 0.4s ease-out both; }
