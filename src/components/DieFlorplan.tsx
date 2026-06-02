@@ -153,7 +153,7 @@ export default function DieFlorplan({ posterior, defectRegion, scanning, onScanE
           const normalizedPost = maxPost > 0 ? post / maxPost : 0;
           const baseColor = REGION_COLORS[i];
           const heat = posterior ? heatColor(normalizedPost) : baseColor;
-          const isHighlit = highlightRegion === i;
+          const isHighlit = highlightRegion === i || defectRegion === i;
 
           return (
             <g key={i}>
@@ -227,31 +227,6 @@ export default function DieFlorplan({ posterior, defectRegion, scanning, onScanE
         <AnimatePresence>
           {defectRegion != null && (
             <g key={`defect-${defectRegion}`}>
-              {/* Pulse rings */}
-              {[1, 2].map(n => (
-                <motion.circle key={n}
-                  cx={REGION_CENTERS[defectRegion].x}
-                  cy={REGION_CENTERS[defectRegion].y}
-                  r={6}
-                  fill="none" stroke="#ff3b3b"
-                  strokeWidth={1.5}
-                  initial={{ scale: 1, opacity: 0.8 }}
-                  animate={{ scale: 3.5, opacity: 0 }}
-                  transition={{ duration: 1.8, repeat: Infinity, delay: n * 0.6, ease: 'easeOut' }}
-                />
-              ))}
-              {/* Core dot */}
-              <motion.circle
-                cx={REGION_CENTERS[defectRegion].x}
-                cy={REGION_CENTERS[defectRegion].y}
-                r={5}
-                fill="#ff3b3b"
-                stroke="#ffffff" strokeWidth={1}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-                style={{ filter: 'drop-shadow(0 0 6px #ff3b3b)' }}
-              />
               <motion.text
                 x={REGION_CENTERS[defectRegion].x}
                 y={(() => {
