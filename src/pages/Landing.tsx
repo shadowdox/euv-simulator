@@ -124,34 +124,19 @@ export default function Landing() {
         initial="hidden" animate="show" variants={stagger}
         style={{ maxWidth: 800, margin: '0 auto', padding: '4rem 2rem 0' }}
       >
-        {/* Label */}
-        <motion.p variants={fade} style={{
-          fontSize: 12, color: '#4a6070', letterSpacing: '0.16em',
-          textTransform: 'uppercase', marginBottom: 24,
-        }}>
-          The EUV Defect Lab &nbsp;·&nbsp; CS109 Challenge &nbsp;·&nbsp; Apple M4
-        </motion.p>
-
-        {/* Big title — robots.rmrm.io style */}
+        {/* Big title */}
         <motion.h1 variants={fade} style={{
           fontFamily: "'IBM Plex Mono', monospace",
           fontSize: 'clamp(32px, 6vw, 64px)',
           fontWeight: 700,
           fontStyle: 'italic',
           lineHeight: 1.1,
-          marginBottom: 28,
+          marginBottom: 40,
           color: '#ffffff',
         }}>
-          <span style={{ color: '#7c6fee' }}>Stochastic defects,</span><br />
-          quantum cures.
+          Localization of<br />
+          <span style={{ color: '#7c6fee' }}>Chip Defects</span>
         </motion.h1>
-
-        {/* Attribution */}
-        <motion.p variants={fade} style={{
-          fontSize: 12, color: '#4a6070', marginBottom: 40, letterSpacing: '0.04em',
-        }}>
-          EUV stochastic failure model &nbsp;·&nbsp; Compound-Poisson physics &nbsp;·&nbsp; Bayesian localization
-        </motion.p>
 
         {/* Body paragraphs */}
         <motion.div variants={stagger} style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 40 }}>
@@ -279,9 +264,6 @@ map will tell you exactly where to look.`,
         initial="hidden" whileInView="show" viewport={{ once: true }} variants={fade}
         style={{ maxWidth: 800, margin: '3rem auto 0', padding: '0 2rem', textAlign: 'center' }}
       >
-        <p style={{ fontSize: 13, color: '#4a6070', marginBottom: 24, lineHeight: 1.7 }}>
-          Results page: 10,000 Monte Carlo trials · confusion matrix · per-region accuracy · entropy curves
-        </p>
         <GlassButton
           size="lg"
           glassColor="rgba(124,111,238,0.10)"
