@@ -1,4 +1,5 @@
 import { PRIORS, LIKELIHOOD } from './physics';
+import { type ChipConfig, getChipPriors } from './chips';
 
 function logSumExp(arr: number[]): number {
   const max = Math.max(...arr);
@@ -9,6 +10,19 @@ export function computePosterior(symptoms: boolean[]): number[] {
   const logPost = PRIORS.map((prior, ri) => {
     const ll = symptoms.reduce((sum, obs, si) => {
       const p = LIKELIHOOD[ri][si];
+      return sum + (obs ? Math.log(p) : Math.log(1 - p));
+    }, 0);
+    return Math.log(prior) + ll;
+  });
+  const logZ = logSumExp(logPost);
+  return logPost.map(lp => Math.exp(lp - logZ));
+}
+
+export function computePosteriorForChip(chip: ChipConfig, symptoms: boolean[]): number[] {
+  const priors = getChipPriors(chip);
+  const logPost = priors.map((prior, ri) => {
+    const ll = symptoms.reduce((sum, obs, si) => {
+      const p = chip.likelihood[ri][si];
       return sum + (obs ? Math.log(p) : Math.log(1 - p));
     }, 0);
     return Math.log(prior) + ll;

@@ -4,24 +4,16 @@ import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer } from 
 import DieFlorplan from '../components/DieFlorplan';
 import { GlassButton } from '@/components/ui/apple-tahoe-liquid-glass-button';
 import {
-  REGION_NAMES, SYMPTOMS, simulateOne, chipFailProb, featureFailProb,
+  SYMPTOMS,
+  CHIPS,
+  CHIP_MAP,
+  type ChipConfig,
+} from '../lib/chips';
+import {
+  simulateOne, chipFailProb, featureFailProb,
   type SimResult,
 } from '../lib/physics';
-import { computePosterior, mapEstimate, shannonEntropy, heatColor } from '../lib/bayes';
-
-// Technical hardware aliases for the true-defect region.
-// Used when the MAP estimate matches the true region — prevents both labels
-// reading identically, making clear the diagnosis was inferred from symptoms.
-const FAULT_LABELS = [
-  'Big Core Complex (BCC)',       // P-Core Cluster
-  'Efficiency Core Array (ECA)',  // E-Core Cluster
-  'Shader Processing Grid',       // GPU Array
-  'Matrix Multiply Fabric',       // Neural Engine / NPU
-  'Shared L3 SRAM Bank',          // System-Level Cache
-  'DRAM PHY Interface',           // Memory Controller
-  'Video Encode Pipeline',        // Media Engine / ISP
-  'AXI Interconnect Mesh',        // Fabric / IO / SE
-];
+import { computePosteriorForChip, mapEstimate, shannonEntropy, heatColor } from '../lib/bayes';
 
 interface RunRecord {
   id: number;
@@ -31,6 +23,8 @@ interface RunRecord {
   mapRegion: number | null;
   correct: boolean | null;
   symptoms: boolean[];
+  chipId: string;
+  regionNames: string[];
 }
 
 interface LogEntry {
@@ -79,10 +73,23 @@ export default function Simulator() {
     { ts: now(), text: 'System initialized. EUV source ready.', color: '#7c6fee' },
     { ts: now(), text: 'Awaiting fabrication command…', color: '#4a6070' },
   ]);
+  const [chipId, setChipId] = useState<'m4' | 'snapdragon' | 'dimensity'>('m4');
+  const chip: ChipConfig = CHIP_MAP[chipId];
   const runIdRef = useRef(0);
 
   const addLog = useCallback((text: string, color?: string) => {
     setLog(prev => [...prev.slice(-40), { ts: now(), text, color }]);
+  }, []);
+
+  const handleChipChange = useCallback((id: 'm4' | 'snapdragon' | 'dimensity') => {
+    setChipId(id);
+    setResult(null);
+    setPosterior(null);
+    setHistory([]);
+    setLog([
+      { ts: now(), text: `Chip switched to ${CHIP_MAP[id].name}.`, color: '#7c6fee' },
+      { ts: now(), text: 'EUV source ready. Awaiting fabrication command…', color: '#4a6070' },
+    ]);
   }, []);
 
   const fabricate = useCallback(() => {
@@ -94,28 +101,28 @@ export default function Simulator() {
   }, [scanning, lambda, mu, kappa, addLog]);
 
   const onScanEnd = useCallback(() => {
-    const r = simulateOne(lambda, mu, kappa);
+    const r = simulateOne(lambda, mu, kappa, chip);
     setResult(r);
 
     const id = ++runIdRef.current;
     if (r.passed) {
       addLog('Chip passed — no defect detected.', '#00ff88');
       setPosterior(null);
-      setHistory(prev => [{ id, lambda, mu, kappa, passed: true, trueRegion: null, mapRegion: null, correct: null, symptoms: [] }, ...prev.slice(0, 49)]);
+      setHistory(prev => [{ id, lambda, mu, kappa, passed: true, trueRegion: null, mapRegion: null, correct: null, symptoms: [], chipId: chip.id, regionNames: chip.regionNames }, ...prev.slice(0, 49)]);
     } else {
-      const post = computePosterior(r.symptoms);
+      const post = computePosteriorForChip(chip, r.symptoms);
       const map = mapEstimate(post);
       const correct = map === r.trueRegion;
       setPosterior(post);
-      addLog(`Defect detected! True region: ${REGION_NAMES[r.trueRegion!]}`, '#ff3b3b');
-      addLog(`Bayesian MAP → ${REGION_NAMES[map]} (${(post[map]*100).toFixed(1)}%)`, correct ? '#00ff88' : '#f5a623');
+      addLog(`Defect detected! True region: ${chip.regionNames[r.trueRegion!]}`, '#ff3b3b');
+      addLog(`Bayesian MAP → ${chip.regionNames[map]} (${(post[map]*100).toFixed(1)}%)`, correct ? '#00ff88' : '#f5a623');
       addLog(`Symptoms: ${r.symptoms.map((s, i) => s ? SYMPTOMS[i] : null).filter(Boolean).join(', ') || 'none'}`, '#8a9eb0');
       const ent = shannonEntropy(post);
       addLog(`Posterior entropy: ${ent.toFixed(2)} bits`, '#4a6070');
-      setHistory(prev => [{ id, lambda, mu, kappa, passed: false, trueRegion: r.trueRegion!, mapRegion: map, correct, symptoms: r.symptoms }, ...prev.slice(0, 49)]);
+      setHistory(prev => [{ id, lambda, mu, kappa, passed: false, trueRegion: r.trueRegion!, mapRegion: map, correct, symptoms: r.symptoms, chipId: chip.id, regionNames: chip.regionNames }, ...prev.slice(0, 49)]);
     }
     setScanning(false);
-  }, [lambda, mu, kappa, addLog]);
+  }, [lambda, mu, kappa, chip, addLog]);
 
   const p = featureFailProb(lambda, mu, kappa);
   const chipP = chipFailProb(lambda, mu, kappa);
@@ -128,7 +135,7 @@ export default function Simulator() {
   const accuracy = fails > 0 ? ((correct / fails) * 100).toFixed(1) : '—';
 
   const barData = posterior
-    ? REGION_NAMES.map((name, i) => ({ name: name.split(' ')[0], full: name, value: posterior[i] }))
+    ? chip.regionNames.map((name, i) => ({ name: name.split(' ')[0], full: name, value: posterior[i] }))
         .sort((a, b) => b.value - a.value)
     : [];
 
@@ -143,8 +150,31 @@ export default function Simulator() {
               FABRICATION SIMULATOR
             </div>
             <div className="font-mono" style={{ fontSize: 10, color: '#4a6070', marginTop: 4 }}>
-              Apple M4 · TSMC N3E · 28B transistors · 100k hotspot features
+              {chip.name} · {chip.node} · {chip.transistors} transistors · 100k hotspot features
             </div>
+          </div>
+          {/* Chip selector */}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {CHIPS.map(c => (
+              <button
+                key={c.id}
+                onClick={() => handleChipChange(c.id)}
+                className="font-mono"
+                style={{
+                  padding: '5px 14px',
+                  fontSize: 10,
+                  letterSpacing: '0.1em',
+                  cursor: 'pointer',
+                  border: `1px solid ${chipId === c.id ? '#7c6fee' : 'rgba(124,111,238,0.2)'}`,
+                  background: chipId === c.id ? 'rgba(124,111,238,0.15)' : 'transparent',
+                  color: chipId === c.id ? '#7c6fee' : '#4a6070',
+                  transition: 'all 0.15s',
+                  borderRadius: 2,
+                }}
+              >
+                {c.shortName}
+              </button>
+            ))}
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 24 }}>
             {[
@@ -250,13 +280,14 @@ export default function Simulator() {
             <div className="panel" style={{ padding: '1rem', overflow: 'hidden' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <span className="font-mono" style={{ fontSize: 9, color: '#4a6070', letterSpacing: '0.12em' }}>
-                  DIE FLOORPLAN — APPLE M4 (28B TRANSISTORS)
+                  {`DIE FLOORPLAN — ${chip.name.toUpperCase()} (${chip.transistors} TRANSISTORS)`}
                 </span>
                 <span className="font-mono" style={{ fontSize: 9, color: scanning ? '#f5a623' : '#4a6070' }}>
                   {scanning ? '◉ EUV SCANNING' : result ? (result.passed ? '● PASS' : '● DEFECT DETECTED') : '○ IDLE'}
                 </span>
               </div>
               <DieFlorplan
+                chip={chip}
                 posterior={posterior ?? undefined}
                 defectRegion={posterior ? mapEstimate(posterior) : result?.trueRegion ?? undefined}
                 scanning={scanning}
@@ -309,8 +340,8 @@ export default function Simulator() {
                         <div className="font-mono" style={{ fontSize: 9, color: '#4a6070', letterSpacing: '0.1em', marginBottom: 4 }}>TRUE DEFECT</div>
                         <div className="font-display" style={{ fontSize: 13, color: '#ff3b3b', letterSpacing: '0.06em' }}>
                           {posterior && mapEstimate(posterior) === result.trueRegion
-                            ? FAULT_LABELS[result.trueRegion!]
-                            : REGION_NAMES[result.trueRegion!]}
+                            ? chip.faultLabels[result.trueRegion!]
+                            : chip.regionNames[result.trueRegion!]}
                         </div>
                       </div>
                       {posterior && (
@@ -318,7 +349,7 @@ export default function Simulator() {
                           <div>
                             <div className="font-mono" style={{ fontSize: 9, color: '#4a6070', marginBottom: 4, letterSpacing: '0.1em' }}>MAP ESTIMATE</div>
                             <div className="font-display" style={{ fontSize: 13, color: mapEstimate(posterior) === result.trueRegion ? '#00ff88' : '#f5a623', letterSpacing: '0.06em' }}>
-                              {REGION_NAMES[mapEstimate(posterior)]}
+                              {chip.regionNames[mapEstimate(posterior)]}
                             </div>
                           </div>
                           <div>
@@ -369,10 +400,10 @@ export default function Simulator() {
                             </span>
                           </td>
                           <td className="font-mono" style={{ padding: '3px 6px', color: '#8a9eb0', fontSize: 9 }}>
-                            {run.trueRegion != null ? REGION_NAMES[run.trueRegion].split(' ')[0] : '—'}
+                            {run.trueRegion != null ? run.regionNames[run.trueRegion].split(' ')[0] : '—'}
                           </td>
                           <td className="font-mono" style={{ padding: '3px 6px', color: '#8a9eb0', fontSize: 9 }}>
-                            {run.mapRegion != null ? REGION_NAMES[run.mapRegion].split(' ')[0] : '—'}
+                            {run.mapRegion != null ? run.regionNames[run.mapRegion].split(' ')[0] : '—'}
                           </td>
                           <td style={{ padding: '3px 6px' }}>
                             {run.correct != null && (
